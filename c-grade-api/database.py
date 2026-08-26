@@ -1,6 +1,9 @@
 import os
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+
+load_dotenv()
 
 # Use SQLite for local development if DATABASE_URL is not provided
 # For Supabase Postgres, it should be provided as:

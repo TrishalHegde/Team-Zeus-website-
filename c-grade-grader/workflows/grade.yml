@@ -1,0 +1,31 @@
+name: C/DSA Assignment Grader
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  grade:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout student code
+        uses: actions/checkout@v4
+
+      - name: Setup GCC & Valgrind
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc valgrind
+
+      - name: Fetch grading runner
+        run: |
+          curl -sS -o grade.py https://raw.githubusercontent.com/Trishal/c-grade-grader/main/grade.py
+
+      - name: Execute Grade Runner
+        env:
+          SUBMISSION_ID: ${{ secrets.SUBMISSION_ID }}
+          COMMIT_HASH: ${{ github.sha }}
+          API_URL: ${{ secrets.API_URL }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+        run: |
+          python grade.py

@@ -2,7 +2,7 @@ import uuid
 from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, Text, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from .database import Base
+from database import Base
 
 # Fallback for SQLite which doesn't natively support UUID type in the same way Postgres does
 # Using String(36) as a standard fallback.
