@@ -1,11 +1,48 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from database import get_db
 from models import User, Assignment, Submission
 from security.auth import get_current_user
-from typing import List
+from typing import Optional
+from datetime import datetime
 
 router = APIRouter(prefix="/students", tags=["students"])
+
+
+class SubmitRequest(BaseModel):
+    assignment_id: str
+    commit_hash: Optional[str] = None
+
+
+@router.post("/submit", status_code=status.HTTP_201_CREATED)
+def create_submission(
+    body: SubmitRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Called when a student pushes code. Creates a queued Submission record.
+    Returns the submission_id which GitHub Actions uses as SUBMISSION_ID env var."""
+    assignment = db.query(Assignment).filter(Assignment.id == body.assignment_id).first()
+    if not assignment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assignment not found."
+        )
+
+    submission = Submission(
+        student_id=current_user.id,
+        assignment_id=body.assignment_id,
+        commit_hash=body.commit_hash,
+        compile_success=False,
+        compiler_error_log=None,  # None = still queued/running
+        correctness_score=0,
+        created_at=datetime.utcnow()
+    )
+    db.add(submission)
+    db.commit()
+    db.refresh(submission)
+    return {"submission_id": submission.id, "status": "queued"}
 
 @router.get("/{student_id}/dashboard")
 def get_student_dashboard(

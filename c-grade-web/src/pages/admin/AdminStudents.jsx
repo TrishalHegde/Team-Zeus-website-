@@ -1,25 +1,52 @@
-import React, { useState } from 'react';
-import { Search, Filter, ShieldAlert, CheckCircle, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Filter, ShieldAlert, CheckCircle, ExternalLink, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-const mockStudents = [
-  { id: '1', name: 'Alice Johnson', github: 'alicej', avatar: 'https://avatars.githubusercontent.com/u/9919?v=4', submissionsCount: 6, avgScore: 84, status: 'Review recommended' },
-  { id: '2', name: 'Bob Smith', github: 'bobsmith', avatar: 'https://avatars.githubusercontent.com/u/9920?v=4', submissionsCount: 4, avgScore: 72, status: 'Review recommended' },
-  { id: '3', name: 'Charlie Brown', github: 'charliebr', avatar: 'https://avatars.githubusercontent.com/u/9921?v=4', submissionsCount: 5, avgScore: 95, status: 'Clean' },
-  { id: '4', name: 'David Lee', github: 'davidl', avatar: 'https://avatars.githubusercontent.com/u/9922?v=4', submissionsCount: 3, avgScore: 68, status: 'Clean' },
-  { id: '5', name: 'Emma Watson', github: 'emmaw', avatar: 'https://avatars.githubusercontent.com/u/9923?v=4', submissionsCount: 8, avgScore: 89, status: 'Clean' },
-];
+import api from '../../services/api';
 
 const AdminStudents = () => {
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
-  const filteredStudents = mockStudents.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          student.github.toLowerCase().includes(searchTerm.toLowerCase());
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const response = await api.get('/api/admin/students');
+        setStudents(response.data);
+      } catch (err) {
+        console.error('Failed to fetch students:', err);
+        setError('Could not load student directory. Please refresh the page.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStudents();
+  }, []);
+
+  const filteredStudents = students.filter(student => {
+    const matchesSearch = student.github_id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = statusFilter === 'All' || student.status === statusFilter;
     return matchesSearch && matchesFilter;
   });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-10 h-10 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-xl p-5 text-rose-700">
+        <AlertCircle className="w-5 h-5 shrink-0" />
+        <p>{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -35,7 +62,7 @@ const AdminStudents = () => {
           <Search className="w-5 h-5 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
-            placeholder="Search students by name or GitHub username..."
+            placeholder="Search students by GitHub username..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50 border-slate-200 text-sm text-slate-800"
@@ -72,17 +99,23 @@ const AdminStudents = () => {
             {filteredStudents.length === 0 ? (
               <tr>
                 <td colSpan="6" className="px-6 py-8 text-center text-slate-400">
-                  No students found matching your criteria.
+                  {students.length === 0 ? 'No students have signed up yet.' : 'No students found matching your criteria.'}
                 </td>
               </tr>
             ) : (
               filteredStudents.map((student) => (
                 <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4 flex items-center gap-3">
-                    <img src={student.avatar} alt={student.name} className="w-8 h-8 rounded-full" />
-                    <span className="font-semibold text-slate-900">{student.name}</span>
+                    {student.avatar_url ? (
+                      <img src={student.avatar_url} alt={student.github_id} className="w-8 h-8 rounded-full" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                        {student.github_id?.[0]?.toUpperCase()}
+                      </div>
+                    )}
+                    <span className="font-semibold text-slate-900">{student.github_id}</span>
                   </td>
-                  <td className="px-6 py-4 font-mono text-xs">{student.github}</td>
+                  <td className="px-6 py-4 font-mono text-xs">{student.github_id}</td>
                   <td className="px-6 py-4 font-semibold text-slate-700">{student.submissionsCount}</td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">

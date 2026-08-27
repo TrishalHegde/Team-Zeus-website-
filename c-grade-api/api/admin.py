@@ -83,3 +83,35 @@ def get_admin_dashboard(
         "flaggedSubmissions": formatted_flags,
         "commonFailures": common_failures
     }
+
+
+@router.get("/students")
+def get_all_students(
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_admin_user)
+):
+    """Returns all enrolled students with per-student metrics for the admin directory."""
+    students = db.query(User).filter(User.role == "student").all()
+
+    result = []
+    for student in students:
+        submissions = db.query(Submission).filter(Submission.student_id == student.id).all()
+        submission_count = len(submissions)
+
+        # Average score across compiled submissions only
+        scored = [s.correctness_score for s in submissions if s.compile_success]
+        avg_score = int(sum(scored) / len(scored)) if scored else 0
+
+        # Suspicion flag: True if any submission is flagged
+        is_flagged = any(s.suspicion_flag for s in submissions)
+
+        result.append({
+            "id": student.id,
+            "github_id": student.github_id,
+            "avatar_url": student.avatar_url,
+            "submissionsCount": submission_count,
+            "avgScore": avg_score,
+            "status": "Review recommended" if is_flagged else "Clean"
+        })
+
+    return result
