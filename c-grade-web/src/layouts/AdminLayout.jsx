@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { LayoutDashboard, Users, History, BarChart3, ShieldAlert, LogOut, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, Users, History, BarChart3, BookOpen, LogOut, ArrowLeft } from 'lucide-react';
 
 const AdminLayout = ({ children }) => {
   return (
@@ -42,6 +42,20 @@ const AdminLayout = ({ children }) => {
           >
             <Users className="w-4 h-4" />
             Students
+          </NavLink>
+
+          <NavLink
+            to="/admin/assignments"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                isActive
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10'
+                  : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+              }`
+            }
+          >
+            <BookOpen className="w-4 h-4" />
+            Assignments
           </NavLink>
 
           <NavLink

@@ -115,3 +115,21 @@ def get_all_students(
         })
 
     return result
+
+
+@router.get("/assignments")
+def get_all_assignments(
+    db: Session = Depends(get_db),
+    admin_user: User = Depends(get_admin_user)
+):
+    """Returns all assignments for the admin panel."""
+    assignments = db.query(Assignment).order_by(Assignment.title).all()
+    return [
+        {
+            "id": a.id,
+            "title": a.title,
+            "deadline": a.deadline,
+            "template_repo_url": a.template_repo_url,
+        }
+        for a in assignments
+    ]

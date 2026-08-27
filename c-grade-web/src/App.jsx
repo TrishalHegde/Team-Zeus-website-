@@ -15,6 +15,7 @@ import AdminStudents from './pages/admin/AdminStudents';
 import AdminSubmissions from './pages/admin/AdminSubmissions';
 import AdminSubmissionDetails from './pages/admin/AdminSubmissionDetails';
 import AdminReports from './pages/admin/AdminReports';
+import AdminAssignments from './pages/admin/AdminAssignments';
 
 import { Link } from 'react-router-dom';
 
@@ -87,6 +88,7 @@ function AppRoutes() {
       <Route path="/admin/students" element={<AdminRoute><AdminLayout><AdminStudents /></AdminLayout></AdminRoute>} />
       <Route path="/admin/submissions" element={<AdminRoute><AdminLayout><AdminSubmissions /></AdminLayout></AdminRoute>} />
       <Route path="/admin/submissions/:id" element={<AdminRoute><AdminLayout><AdminSubmissionDetails /></AdminLayout></AdminRoute>} />
+      <Route path="/admin/assignments" element={<AdminRoute><AdminLayout><AdminAssignments /></AdminLayout></AdminRoute>} />
       <Route path="/admin/reports" element={<AdminRoute><AdminLayout><AdminReports /></AdminLayout></AdminRoute>} />
     </Routes>
   );
