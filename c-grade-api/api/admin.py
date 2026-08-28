@@ -128,6 +128,7 @@ def get_all_assignments(
         {
             "id": a.id,
             "title": a.title,
+            "folder_name": a.folder_name,
             "deadline": a.deadline,
             "template_repo_url": a.template_repo_url,
         }

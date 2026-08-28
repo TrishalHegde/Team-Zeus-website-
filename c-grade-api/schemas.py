@@ -18,6 +18,7 @@ class User(UserBase):
 
 class AssignmentBase(BaseModel):
     title: str
+    folder_name: Optional[str] = None  # e.g. "lab1" — folder name in the submissions repo
     deadline: Optional[datetime] = None
     template_repo_url: Optional[str] = None
 

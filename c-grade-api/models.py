@@ -25,6 +25,7 @@ class Assignment(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     title = Column(String, index=True)
+    folder_name = Column(String, unique=True, nullable=True, index=True)  # e.g. "lab1" — the folder in the submissions repo
     deadline = Column(DateTime(timezone=True), nullable=True)
     template_repo_url = Column(String, nullable=True)
 

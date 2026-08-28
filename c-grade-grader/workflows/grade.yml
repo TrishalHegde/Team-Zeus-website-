@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '*/*/main.c'   # Triggers only when a file matching assignment/student/main.c is pushed
 
 jobs:
   grade:
@@ -12,36 +14,55 @@ jobs:
     steps:
       - name: Checkout student code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # Need previous commit to detect what changed
 
       - name: Setup Python, GCC & Valgrind
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y gcc valgrind python3
 
+      - name: Detect assignment folder from changed path
+        id: detect
+        run: |
+          # Get the changed file path (e.g. "lab1/alice/main.c")
+          CHANGED=$(git diff --name-only HEAD~1 HEAD | grep 'main\.c$' | head -1)
+          if [ -z "$CHANGED" ]; then
+            echo "No main.c change detected in this push. Skipping."
+            exit 0
+          fi
+          # Extract the assignment folder name (first segment of the path)
+          ASSIGNMENT=$(echo "$CHANGED" | cut -d'/' -f1)
+          echo "Detected assignment folder: $ASSIGNMENT"
+          echo "Student (github.actor): ${{ github.actor }}"
+          echo "ASSIGNMENT_FOLDER=$ASSIGNMENT" >> $GITHUB_ENV
+
+      - name: Copy student code and tests to workspace root
+        run: |
+          STUDENT_PATH="${ASSIGNMENT_FOLDER}/${{ github.actor }}/main.c"
+          if [ ! -f "$STUDENT_PATH" ]; then
+            echo "ERROR: Could not find $STUDENT_PATH"
+            echo "Make sure your folder is named exactly: ${{ github.actor }}"
+            exit 1
+          fi
+          cp "$STUDENT_PATH" ./main.c
+          # Copy the assignment's test cases if they exist
+          if [ -f "${ASSIGNMENT_FOLDER}/tests.json" ]; then
+            cp "${ASSIGNMENT_FOLDER}/tests.json" ./tests.json
+            echo "Test cases loaded from ${ASSIGNMENT_FOLDER}/tests.json"
+          else
+            echo "No tests.json found — will use default sanity check."
+          fi
+
       - name: Fetch grading runner from Team Zeus repo
         run: |
           curl -sS -o grade.py \
             https://raw.githubusercontent.com/TrishalHegde/Team-Zeus-website-/main/c-grade-grader/grade.py
 
-      - name: Register submission with backend (create queued record)
-        id: register
-        env:
-          API_URL: ${{ secrets.API_URL }}
-          STUDENT_JWT: ${{ secrets.STUDENT_JWT }}
-          ASSIGNMENT_ID: ${{ secrets.ASSIGNMENT_ID }}
-        run: |
-          RESPONSE=$(curl -s -X POST "$API_URL/api/students/submit" \
-            -H "Authorization: Bearer $STUDENT_JWT" \
-            -H "Content-Type: application/json" \
-            -d "{\"assignment_id\": \"$ASSIGNMENT_ID\", \"commit_hash\": \"$GITHUB_SHA\"}")
-          echo "API Response: $RESPONSE"
-          SUBMISSION_ID=$(echo "$RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin)['submission_id'])")
-          echo "SUBMISSION_ID=$SUBMISSION_ID" >> $GITHUB_ENV
-          echo "Registered submission: $SUBMISSION_ID"
-
       - name: Execute Grade Runner
         env:
-          SUBMISSION_ID: ${{ env.SUBMISSION_ID }}
+          ASSIGNMENT_FOLDER: ${{ env.ASSIGNMENT_FOLDER }}
+          STUDENT_GITHUB_ID: ${{ github.actor }}
           COMMIT_HASH: ${{ github.sha }}
           API_URL: ${{ secrets.API_URL }}
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}

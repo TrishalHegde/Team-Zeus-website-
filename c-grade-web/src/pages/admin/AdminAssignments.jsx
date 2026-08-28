@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, BookOpen, Calendar, Github, X, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Plus, BookOpen, Calendar, Github, FolderOpen, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import api from '../../services/api';
 
 const AdminAssignments = () => {
@@ -11,6 +11,7 @@ const AdminAssignments = () => {
   // Form state
   const [formData, setFormData] = useState({
     title: '',
+    folder_name: '',
     deadline: '',
     template_repo_url: '',
   });
@@ -51,6 +52,7 @@ const AdminAssignments = () => {
 
     const payload = {
       title: formData.title.trim(),
+      folder_name: formData.folder_name.trim().toLowerCase().replace(/\s+/g, '-') || null,
       deadline: formData.deadline ? new Date(formData.deadline).toISOString() : null,
       template_repo_url: formData.template_repo_url.trim() || null,
     };
@@ -59,7 +61,7 @@ const AdminAssignments = () => {
       setSubmitting(true);
       await api.post('/api/assignments', payload);
       setFormSuccess('Assignment created successfully!');
-      setFormData({ title: '', deadline: '', template_repo_url: '' });
+      setFormData({ title: '', folder_name: '', deadline: '', template_repo_url: '' });
       fetchAssignments(); // Refresh list
       setTimeout(() => {
         setShowModal(false);
@@ -75,7 +77,7 @@ const AdminAssignments = () => {
 
   const closeModal = () => {
     setShowModal(false);
-    setFormData({ title: '', deadline: '', template_repo_url: '' });
+    setFormData({ title: '', folder_name: '', deadline: '', template_repo_url: '' });
     setFormError(null);
     setFormSuccess(null);
   };
@@ -130,9 +132,11 @@ const AdminAssignments = () => {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-bold text-slate-800 text-base leading-snug">{assignment.title}</h3>
-                    <span className="shrink-0 text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-100 rounded px-2 py-0.5">
-                      #{assignment.id.slice(0, 6)}
-                    </span>
+                    {assignment.folder_name && (
+                      <code className="shrink-0 text-xs font-mono bg-indigo-50 text-indigo-700 border border-indigo-100 rounded px-2 py-0.5">
+                        {assignment.folder_name}/
+                      </code>
+                    )}
                   </div>
 
                   {assignment.deadline && (
@@ -193,6 +197,27 @@ const AdminAssignments = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Folder Name */}
+              <div className="space-y-1.5">
+                <label htmlFor="folder_name" className="block text-sm font-semibold text-slate-700">
+                  Folder Name <span className="text-rose-500">*</span>
+                  <span className="ml-1 text-xs font-normal text-slate-400">(the folder students push to, e.g. "lab1")</span>
+                </label>
+                <div className="flex items-center gap-2 border border-slate-300 rounded-lg px-4 py-2.5 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-indigo-500 transition">
+                  <FolderOpen className="w-4 h-4 text-slate-400 shrink-0" />
+                  <input
+                    id="folder_name"
+                    name="folder_name"
+                    type="text"
+                    value={formData.folder_name}
+                    onChange={handleChange}
+                    placeholder="e.g. lab1"
+                    className="w-full text-sm text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent"
+                  />
+                </div>
+                <p className="text-xs text-slate-400">Students will push their code to <code className="bg-slate-100 px-1 rounded">{formData.folder_name || 'folder-name'}/{'{'}their-github-username{'}'}/main.c</code></p>
+              </div>
+
               {/* Title */}
               <div className="space-y-1.5">
                 <label htmlFor="title" className="block text-sm font-semibold text-slate-700">

@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
-from models import Submission, TestResult, User
+from models import Assignment, Submission, TestResult, User
 from security.webhook import verify_webhook_signature
 from pydantic import BaseModel
 from typing import List, Optional
@@ -17,7 +17,8 @@ class TestResultSchema(BaseModel):
     expected_output: Optional[str] = None
 
 class GradingPayload(BaseModel):
-    submission_id: str
+    assignment_folder: str       # e.g. "lab1" — matched to Assignment.folder_name
+    student_github_id: str       # github.actor — matched to User.github_id
     commit_hash: str
     compile_success: bool
     compiler_error_log: Optional[str] = None
@@ -29,44 +30,62 @@ def receive_grading_result(
     payload: GradingPayload,
     db: Session = Depends(get_db)
 ):
-    # Find existing submission or create new one if triggered directly
-    submission = db.query(Submission).filter(Submission.id == payload.submission_id).first()
-    
-    if not submission:
-        # Replay/duplicate check or invalid ID check
+    # 1. Look up the assignment by folder_name
+    assignment = db.query(Assignment).filter(
+        Assignment.folder_name == payload.assignment_folder
+    ).first()
+    if not assignment:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Submission ID not found."
+            detail=f"No assignment found with folder_name='{payload.assignment_folder}'. "
+                   f"Please create the assignment in the admin panel with this folder name."
         )
-        
-    # Prevent duplicate grading processing (replay attack / duplicate event logic)
-    if submission.compile_success or submission.compiler_error_log:
-        return {"status": "ignored", "reason": "submission already graded"}
 
-    # Update submission
-    submission.compile_success = payload.compile_success
-    submission.compiler_error_log = payload.compiler_error_log
-    submission.correctness_score = payload.correctness_score
-    submission.created_at = datetime.utcnow() # Finished time
+    # 2. Look up the student by github_id; auto-create if they are a new org member
+    student = db.query(User).filter(User.github_id == payload.student_github_id).first()
+    if not student:
+        student = User(
+            github_id=payload.student_github_id,
+            role="student",
+            avatar_url=None
+        )
+        db.add(student)
+        db.commit()
+        db.refresh(student)
 
-    # Check for anomaly/cheating signals
-    # Plan: "commit frequency/time-to-completion as an anomaly signal"
-    # For now, let's flag as suspicious if correctness score is 100 but compilation succeeded immediately
-    # We can fetch other student submissions to check commit timing if we had the repository metrics.
-    # We mock this suspicion check:
-    student_submissions_count = db.query(Submission).filter(
-        Submission.student_id == submission.student_id,
-        Submission.assignment_id == submission.assignment_id
+    # 3. Check for a duplicate in-flight submission (same student + assignment + commit)
+    existing = db.query(Submission).filter(
+        Submission.student_id == student.id,
+        Submission.assignment_id == assignment.id,
+        Submission.commit_hash == payload.commit_hash,
+    ).first()
+    if existing and (existing.compile_success or existing.compiler_error_log):
+        return {"status": "ignored", "reason": "duplicate commit already graded"}
+
+    # 4. Create the Submission record
+    submission = Submission(
+        student_id=student.id,
+        assignment_id=assignment.id,
+        commit_hash=payload.commit_hash,
+        compile_success=payload.compile_success,
+        compiler_error_log=payload.compiler_error_log,
+        correctness_score=payload.correctness_score,
+        created_at=datetime.utcnow()
+    )
+
+    # 5. Anomaly / anti-cheat signal
+    previous_submissions = db.query(Submission).filter(
+        Submission.student_id == student.id,
+        Submission.assignment_id == assignment.id,
     ).count()
-    
-    # If the student got 100 on their 1st commit within short timeframe (metadata can track it)
-    if payload.correctness_score == 100 and student_submissions_count <= 1:
-        # In a real app we check the duration since repository assignment creation
+    if payload.correctness_score == 100 and previous_submissions == 0:
         submission.suspicion_flag = True
 
+    db.add(submission)
     db.commit()
+    db.refresh(submission)
 
-    # Save test case outcomes
+    # 6. Save test results
     for test in payload.test_results:
         result_record = TestResult(
             submission_id=submission.id,
@@ -76,6 +95,6 @@ def receive_grading_result(
             expected_output=test.expected_output
         )
         db.add(result_record)
-        
+
     db.commit()
     return {"status": "success", "submission_id": submission.id}

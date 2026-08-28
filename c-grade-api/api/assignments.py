@@ -62,6 +62,7 @@ def create_assignment(
     # Only admins can create assignments
     assignment = Assignment(
         title=assignment_in.title,
+        folder_name=assignment_in.folder_name,
         deadline=assignment_in.deadline,
         template_repo_url=assignment_in.template_repo_url
     )
