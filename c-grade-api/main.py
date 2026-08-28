@@ -28,7 +28,7 @@ app.include_router(submissions_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
 app.include_router(webhooks_router, prefix="/api")
 
+@app.get("/")
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
-
+    return {"status": "ok", "message": "C-Grade API is running"}
