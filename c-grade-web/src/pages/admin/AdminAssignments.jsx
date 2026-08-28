@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, BookOpen, Calendar, Github, FolderOpen, X, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Plus, BookOpen, Calendar, GitBranch, FolderOpen, X, AlertCircle, CheckCircle2 } from 'lucide-react';
 import api from '../../services/api';
 
 const AdminAssignments = () => {
@@ -148,7 +148,7 @@ const AdminAssignments = () => {
 
                   {assignment.template_repo_url && (
                     <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <Github className="w-3.5 h-3.5 shrink-0" />
+                      <GitBranch className="w-3.5 h-3.5 shrink-0" />
                       <a
                         href={assignment.template_repo_url}
                         target="_blank"
