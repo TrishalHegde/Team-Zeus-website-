@@ -14,6 +14,12 @@ GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
 
 @router.get("/github/callback")
 async def github_callback(code: str, db: Session = Depends(get_db)):
+    if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
+        raise HTTPException(
+            status_code=500, 
+            detail="Server configuration error: GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET is missing from the environment."
+        )
+
     # Exchange code for GitHub access token
     async with httpx.AsyncClient() as client:
         res = await client.post(
