@@ -3,18 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
+let isExchangeAttempted = false;
+
 const LoginCallback = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [error, setError] = useState(null);
-  const exchangeAttempted = useRef(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
 
-    if (exchangeAttempted.current) return;
-    exchangeAttempted.current = true;
+    if (isExchangeAttempted) return;
+    isExchangeAttempted = true;
 
     if (!code) {
       setError('No authorization code found. Please try logging in again.');

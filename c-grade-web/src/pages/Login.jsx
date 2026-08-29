@@ -3,8 +3,7 @@ import React from 'react';
 const Login = () => {
   const handleGithubLogin = () => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
-    const redirectUri = `${window.location.origin}/login/callback`;
-    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user,repo`;
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=user,repo`;
     
     // In local development, we might want to just mock login or redirect
     window.location.href = githubAuthUrl;
