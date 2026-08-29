@@ -59,3 +59,40 @@ class TestResult(Base):
     expected_output = Column(Text, nullable=True)
 
     submission = relationship("Submission", back_populates="test_results")
+
+class Quiz(Base):
+    __tablename__ = "quizzes"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    title = Column(String, index=True)
+    status = Column(String, default="pending") # pending, active, completed
+    created_at = Column(DateTime(timezone=True), nullable=True)
+
+    questions = relationship("QuizQuestion", back_populates="quiz")
+    submissions = relationship("QuizSubmission", back_populates="quiz")
+
+class QuizQuestion(Base):
+    __tablename__ = "quiz_questions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    quiz_id = Column(String(36), ForeignKey("quizzes.id"))
+    text = Column(Text, nullable=False)
+    options = Column(Text, nullable=False) # JSON encoded list of strings
+    correct_answer = Column(String, nullable=False)
+
+    quiz = relationship("Quiz", back_populates="questions")
+    submissions = relationship("QuizSubmission", back_populates="question")
+
+class QuizSubmission(Base):
+    __tablename__ = "quiz_submissions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    quiz_id = Column(String(36), ForeignKey("quizzes.id"))
+    question_id = Column(String(36), ForeignKey("quiz_questions.id"))
+    student_id = Column(String(36), ForeignKey("users.id"))
+    chosen_answer = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=True)
+
+    quiz = relationship("Quiz", back_populates="submissions")
+    question = relationship("QuizQuestion", back_populates="submissions")
+    student = relationship("User")

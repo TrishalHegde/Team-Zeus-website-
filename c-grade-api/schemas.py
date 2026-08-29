@@ -65,3 +65,49 @@ class TestResult(TestResultBase):
 
     class Config:
         from_attributes = True
+
+class QuizQuestionBase(BaseModel):
+    text: str
+    options: str # JSON encoded list of strings
+    correct_answer: str
+
+class QuizQuestionCreate(QuizQuestionBase):
+    pass
+
+class QuizQuestion(QuizQuestionBase):
+    id: str
+    quiz_id: str
+
+    class Config:
+        from_attributes = True
+
+class QuizBase(BaseModel):
+    title: str
+    status: str = "pending"
+
+class QuizCreate(QuizBase):
+    questions: List[QuizQuestionCreate]
+
+class Quiz(QuizBase):
+    id: str
+    created_at: Optional[datetime] = None
+    questions: List[QuizQuestion] = []
+
+    class Config:
+        from_attributes = True
+
+class QuizSubmissionBase(BaseModel):
+    quiz_id: str
+    question_id: str
+    chosen_answer: str
+
+class QuizSubmissionCreate(QuizSubmissionBase):
+    pass
+
+class QuizSubmission(QuizSubmissionBase):
+    id: str
+    student_id: str
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
